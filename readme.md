@@ -62,8 +62,6 @@ Using **cosine similarity**, we measure how close one movie's vector is to anoth
 .
 ├── Main.py                # FastAPI routes and app
 ├── recommender.py         # MovieRecommender class and NLP logic
-├── requirements.txt       # Python dependencies
-├── script.py              # Script to convert Csv's into JSON
 ├── tmdb_5000_movies.csv   # Movie dataset
 ├── tmdb_5000_credits.csv  # Cast & Crew dataset
 └── README.md
@@ -172,5 +170,12 @@ Docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 - scikit-learn Docs: https://scikit-learn.org/stable/modules/feature_extraction.html
 
 ---
-
-Made with ❤️ by [Arya Sharma](https://fragnite.vercel.app)
+<br>
+<p align="center">
+  Made with ❤️ by 
+  <a href="https://fragnite.vercel.app" target="_blank">
+    <button style="padding: 6px 12px; font-size: 14px; background-color: #8B5CF6; color: white; border: none; border-radius: 5px; cursor: pointer;">
+      Arya Sharma
+    </button>
+  </a>
+</p>
