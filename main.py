@@ -1,7 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from recommender import MovieRecommender
-import uvicorn
 import os
 import logging
 
@@ -29,6 +28,9 @@ recommender = None
 @app.on_event("startup")
 def load_recommender():
     global recommender
+    port = os.environ.get("PORT", "10000")
+    logger.info(f"🚀 Launching CineWhiz API on port {port}...")
+
     try:
         logger.info("🔄 Initializing Movie Recommender...")
         recommender = MovieRecommender()
@@ -36,6 +38,8 @@ def load_recommender():
     except Exception as e:
         logger.exception("❌ Failed to initialize recommender system.")
         recommender = None
+
+    logger.info("✅ CineWhiz API is live!")
 
 @app.get("/")
 def root():
@@ -55,10 +59,3 @@ def recommend(title: str):
     except Exception as e:
         logger.exception(f"🚨 Error during recommendation: {e}")
         raise HTTPException(status_code=500, detail="Internal server error.")
-
-# Render injects PORT into env var — so we bind to it
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-    logger.info(f"🚀 Launching CineWhiz API on port {port}...")
-    uvicorn.run("main:app", host="0.0.0.0", port=port)
-    logger.info("✅ CineWhiz API is live!")
