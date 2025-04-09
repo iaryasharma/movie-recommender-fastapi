@@ -15,7 +15,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Allow requests from frontend
+# Allow frontend origin
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://cinewhiz.vercel.app"],
@@ -24,7 +24,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global recommender object
 recommender = None
 
 @app.on_event("startup")
@@ -45,20 +44,21 @@ def root():
 
 @app.get("/recommend")
 def recommend(title: str):
-    logger.info(f"🎯 Received request for recommendations based on: {title}")
+    logger.info(f"🎯 Request for recommendations based on: {title}")
     if not recommender:
-        raise HTTPException(status_code=503, detail="Recommender system is currently unavailable.")
-
+        raise HTTPException(status_code=503, detail="Recommender system unavailable.")
     try:
         result = recommender.recommend(title)
         if result == ["Movie not found in dataset."]:
-            raise HTTPException(status_code=404, detail=f"Movie '{title}' not found in dataset.")
+            raise HTTPException(status_code=404, detail=f"Movie '{title}' not found.")
         return {"recommended": result}
     except Exception as e:
-        logger.exception(f"🚨 Error during recommendation for '{title}': {e}")
-        raise HTTPException(status_code=500, detail="Internal server error during recommendation.")
+        logger.exception(f"🚨 Error during recommendation: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error.")
 
+# Render injects PORT into env var — so we bind to it
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     logger.info(f"🚀 Launching CineWhiz API on port {port}...")
     uvicorn.run("main:app", host="0.0.0.0", port=port)
+    logger.info("✅ CineWhiz API is live!")
