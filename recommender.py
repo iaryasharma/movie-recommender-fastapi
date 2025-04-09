@@ -2,50 +2,85 @@ import pandas as pd
 import ast
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import logging
 
 class MovieRecommender:
     def __init__(self):
-        # Load and merge datasets
-        self.movies = pd.read_csv("tmdb_5000_movies.csv")
-        self.credits = pd.read_csv("tmdb_5000_credits.csv")
-        self.movies = self.movies.merge(self.credits, left_on='id', right_on='movie_id')
+        try:
+            # Load and read datasets
+            logging.info("Loading CSV files...")
+            self.movies = pd.read_csv("tmdb_5000_movies.csv")
+            self.credits = pd.read_csv("tmdb_5000_credits.csv")
+            logging.info("CSV files loaded successfully.")
+        except FileNotFoundError as e:
+            logging.error(f"File not found: {e}")
+            raise
+        except Exception as e:
+            logging.error(f"Error reading CSV files: {e}")
+            raise
 
-        # Select and rename relevant columns
-        self.movies = self.movies[['id', 'title_x', 'overview', 'genres', 'keywords', 'cast', 'crew']]
-        self.movies.rename(columns={'title_x': 'title'}, inplace=True)
-        self.movies.dropna(inplace=True)
+        try:
+            # Merge movies and credits dataset using 'id' and 'movie_id'
+            self.movies = self.movies.merge(self.credits, left_on='id', right_on='movie_id')
 
-        # Extract features
-        self.movies['genres'] = self.movies['genres'].apply(self._convert)
-        self.movies['keywords'] = self.movies['keywords'].apply(self._convert)
-        self.movies['cast'] = self.movies['cast'].apply(self._convert_cast)
-        self.movies['crew'] = self.movies['crew'].apply(self._get_director)
-        self.movies['overview'] = self.movies['overview'].apply(lambda x: x.split())
+            # Select and rename relevant columns
+            self.movies = self.movies[['id', 'title_x', 'overview', 'genres', 'keywords', 'cast', 'crew']]
+            self.movies.rename(columns={'title_x': 'title'}, inplace=True)
 
-        # Combine all features into a single 'tags' column
-        self.movies['tags'] = self.movies['overview'] + self.movies['genres'] + self.movies['keywords'] + self.movies['cast'] + self.movies['crew']
-        self.movies['tags'] = self.movies['tags'].apply(lambda x: " ".join(x).lower())
+            # Drop any rows with null values
+            self.movies.dropna(inplace=True)
 
-        # Convert text to vectors using CountVectorizer (BoW model)
-        self.cv = CountVectorizer(max_features=5000, stop_words='english')
-        self.vectors = self.cv.fit_transform(self.movies['tags']).toarray()
+            # Convert stringified JSON columns to list of names
+            self.movies['genres'] = self.movies['genres'].apply(self._convert)
+            self.movies['keywords'] = self.movies['keywords'].apply(self._convert)
+            self.movies['cast'] = self.movies['cast'].apply(self._convert_cast)
+            self.movies['crew'] = self.movies['crew'].apply(self._get_director)
 
-        # Compute similarity matrix
-        self.similarity = cosine_similarity(self.vectors)
+            # Split overview text into list of words
+            self.movies['overview'] = self.movies['overview'].apply(lambda x: x.split())
 
+            # Combine all text features into a single 'tags' column
+            self.movies['tags'] = self.movies['overview'] + self.movies['genres'] + self.movies['keywords'] + self.movies['cast'] + self.movies['crew']
+            self.movies['tags'] = self.movies['tags'].apply(lambda x: " ".join(x).lower())
+
+            # Create Bag of Words vectors from 'tags' column
+            self.cv = CountVectorizer(max_features=5000, stop_words='english')
+            self.vectors = self.cv.fit_transform(self.movies['tags']).toarray()
+
+            # Calculate cosine similarity matrix for recommendations
+            self.similarity = cosine_similarity(self.vectors)
+
+            logging.info("Recommender system initialized.")
+        except Exception as e:
+            logging.error(f"Error initializing recommender system: {e}")
+            raise
+
+    # Convert genres/keywords from stringified list of dicts to list of names
     def _convert(self, text):
-        return [i['name'] for i in ast.literal_eval(text)]
+        try:
+            return [i['name'] for i in ast.literal_eval(text)]
+        except:
+            return []
 
+    # Extract top 3 cast members
     def _convert_cast(self, text):
-        return [i['name'] for i in ast.literal_eval(text)[:3]]  # Top 3 cast
+        try:
+            return [i['name'] for i in ast.literal_eval(text)[:3]]
+        except:
+            return []
 
+    # Extract director's name from crew list
     def _get_director(self, text):
-        crew = ast.literal_eval(text)
-        for person in crew:
-            if person['job'] == 'Director':
-                return [person['name']]
+        try:
+            crew = ast.literal_eval(text)
+            for person in crew:
+                if person['job'] == 'Director':
+                    return [person['name']]
+        except:
+            return []
         return []
 
+    # Recommend top 5 similar movies based on the title
     def recommend(self, movie_title):
         movie_title = movie_title.lower()
         movie_index = self.movies[self.movies['title'].str.lower() == movie_title].index
