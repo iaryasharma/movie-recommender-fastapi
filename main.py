@@ -2,17 +2,22 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from recommender import MovieRecommender
 
-app = FastAPI()
+app = FastAPI(
+    title="CineWhiz Movie Recommendation API",
+    description="Backend for CineWhiz movie recommendation platform using FastAPI and scikit-learn",
+    version="1.0.0"
+)
 
-# Allow cross-origin requests from all domains (use specific domains in production)
+# Allow CORS only from your Vercel frontend domain
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://cinewhiz.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Initialize recommender
 recommender = MovieRecommender()
 
 @app.get("/")
